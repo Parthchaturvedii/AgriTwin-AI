@@ -665,13 +665,6 @@ function Dashboard() {
 
               </Link>
 
-              <Link
-  to="/inbox"
-  className="rounded-xl bg-indigo-600 px-6 py-3 text-white font-semibold shadow hover:bg-indigo-700"
->
-   📩 Inbox
-</Link>
-
             </div>
 
           </div>
@@ -730,4 +723,4 @@ function Dashboard() {
 
 }
 
-export default Dashboard; 
+export default Dashboard;
