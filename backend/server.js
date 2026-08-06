@@ -19,7 +19,10 @@ connectDB();
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "https://agri-twin-ai-87pc.vercel.app/login"
+    ],
     credentials: true,
   })
 );
