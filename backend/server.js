@@ -22,6 +22,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://agri-twin-ai-dusky.vercel.app",
+      "https://agri-twin-ai-one.vercel.app",
       "https://agri-twin-ai-87pc-9sde0b4ag-parth-chaturvedis-projects-050e1cb5.vercel.app"
     ],
     credentials: true,
