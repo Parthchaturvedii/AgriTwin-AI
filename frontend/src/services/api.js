@@ -1,10 +1,11 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_URL,
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
 });
 
 // Request Interceptor
@@ -16,8 +17,8 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    console.log("API URL:", config.baseURL);
     console.log("API Request:", config.url);
-    console.log("Token:", token ? "Present" : "Missing");
 
     return config;
   },
@@ -28,21 +29,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response) {
-      console.error(
-        `API Error ${error.response.status}:`,
-        error.response.data
-      );
-
-      // Logout only when authentication actually fails
-      if (error.response.status === 401) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-
-        window.location.replace("/login");
-      }
-    } else {
-      console.error("Network Error:", error.message);
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.replace("/login");
     }
 
     return Promise.reject(error);
