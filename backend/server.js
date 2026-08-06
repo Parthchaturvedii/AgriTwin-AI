@@ -21,7 +21,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://agri-twin-ai-87pc.vercel.app/login"
+      "https://agri-twin-ai-87pc-9sde0b4ag-parth-chaturvedis-projects-050e1cb5.vercel.app"
     ],
     credentials: true,
   })
