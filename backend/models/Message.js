@@ -1,67 +1,45 @@
 const mongoose = require("mongoose");
 
-const chatSchema = new mongoose.Schema(
+const messageSchema = new mongoose.Schema(
   {
-    participants: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-      },
-    ],
-
-    offer: {
+    chat: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Offer",
-      unique: true,
-      sparse: true,
-      default: null,
+      ref: "Chat",
+      required: true,
     },
 
-    listing: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "CropListing",
-      default: null,
-    },
-
-    buyer: {
+    sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
 
-    farmer: {
+    receiver: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
 
-    lastMessage: {
+    message: {
       type: String,
-      default: "",
+      required: true,
+      trim: true,
     },
 
-    lastMessageAt: {
-      type: Date,
-      default: Date.now,
-    },
-
-    unreadCount: {
-      farmer: {
-        type: Number,
-        default: 0,
-      },
-
-      buyer: {
-        type: Number,
-        default: 0,
-      },
-    },
-
-    status: {
+    type: {
       type: String,
-      enum: ["Active", "Archived", "Blocked"],
-      default: "Active",
+      enum: ["text", "image", "offer", "system", "counterOffer"],
+      default: "text",
+    },
+
+    offerPrice: {
+      type: Number,
+      default: null,
+    },
+
+    seen: {
+      type: Boolean,
+      default: false,
     },
   },
   {
@@ -69,4 +47,6 @@ const chatSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Chat", chatSchema);
+module.exports =
+  mongoose.models.Message ||
+  mongoose.model("Message", messageSchema);
