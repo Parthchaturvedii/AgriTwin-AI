@@ -6,9 +6,10 @@ const Buyer = require("../models/Buyer");
 
 const generateToken = require("../utils/generateToken");
 
-//
-// Register
-//
+/* =====================================================
+   REGISTER
+===================================================== */
+
 exports.register = async (req, res) => {
   try {
     const {
@@ -23,7 +24,10 @@ exports.register = async (req, res) => {
       companyName,
     } = req.body;
 
-    // Validate required fields
+    /* =====================================================
+       BASIC VALIDATION
+    ===================================================== */
+
     if (!fullName || !email || !password || !role) {
       return res.status(400).json({
         success: false,
@@ -31,17 +35,52 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Validate role
+    /* =====================================================
+       ROLE VALIDATION
+    ===================================================== */
+
     if (!["farmer", "buyer"].includes(role)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid role.",
+        message: "Invalid role. Role must be farmer or buyer.",
       });
     }
 
-    // Check existing user
+    /* =====================================================
+       FARMER VALIDATION
+    ===================================================== */
+
+    if (role === "farmer" && !phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number is required for farmer registration.",
+      });
+    }
+
+    /* =====================================================
+       BUYER VALIDATION
+    ===================================================== */
+
+    if (role === "buyer" && !companyName) {
+      return res.status(400).json({
+        success: false,
+        message: "Company name is required for buyer registration.",
+      });
+    }
+
+    /* =====================================================
+       CLEAN INPUT
+    ===================================================== */
+
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanFullName = fullName.trim();
+
+    /* =====================================================
+       CHECK EXISTING USER
+    ===================================================== */
+
     const existingUser = await User.findOne({
-      email: email.toLowerCase().trim(),
+      email: cleanEmail,
     });
 
     if (existingUser) {
@@ -51,53 +90,97 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Hash password
+    /* =====================================================
+       HASH PASSWORD
+    ===================================================== */
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
+    /* =====================================================
+       CREATE USER
+    ===================================================== */
+
     const user = await User.create({
-      fullName: fullName.trim(),
-      email: email.toLowerCase().trim(),
+      fullName: cleanFullName,
+      email: cleanEmail,
       password: hashedPassword,
       role,
     });
 
+    console.log("✅ User created:", user._id);
+
+    /* =====================================================
+       CREATE FARMER / BUYER PROFILE
+    ===================================================== */
+
     try {
-      // Create Farmer profile
+      /* -------------------------------------------------
+         FARMER
+      ------------------------------------------------- */
+
       if (role === "farmer") {
-        await Farmer.create({
-          owner: user._id,
-          phone,
-          state,
-          district,
-          village,
+        const farmer = await Farmer.create({
+          // IMPORTANT:
+          // Farmer schema requires "user", NOT "owner"
+          user: user._id,
+
+          phone: phone.trim(),
+          state: state ? state.trim() : "",
+          district: district ? district.trim() : "",
+          village: village ? village.trim() : "",
         });
+
+        console.log("🌾 Farmer profile created:", farmer._id);
       }
 
-      // Create Buyer profile
+      /* -------------------------------------------------
+         BUYER
+      ------------------------------------------------- */
+
       if (role === "buyer") {
-        await Buyer.create({
-          owner: user._id,
-          companyName,
-          phone,
-          state,
-          district,
+        const buyer = await Buyer.create({
+          // IMPORTANT:
+          // Buyer schema requires "user", NOT "owner"
+          user: user._id,
+
+          companyName: companyName.trim(),
+          phone: phone ? phone.trim() : "",
+          state: state ? state.trim() : "",
+          district: district ? district.trim() : "",
         });
+
+        console.log("🏢 Buyer profile created:", buyer._id);
       }
     } catch (profileError) {
-      // Remove User if Farmer/Buyer creation fails
+      /*
+       * If profile creation fails,
+       * delete the User that was just created.
+       */
+
+      console.error("❌ Profile creation failed:");
+      console.error(profileError);
+
       await User.findByIdAndDelete(user._id);
 
       throw profileError;
     }
 
-    // Generate JWT
+    /* =====================================================
+       GENERATE JWT
+    ===================================================== */
+
     const token = generateToken(user._id);
+
+    /* =====================================================
+       SUCCESS RESPONSE
+    ===================================================== */
 
     return res.status(201).json({
       success: true,
       message: "Registration successful.",
+
       token,
+
       user: {
         _id: user._id,
         fullName: user.fullName,
@@ -107,7 +190,7 @@ exports.register = async (req, res) => {
     });
   } catch (error) {
     console.error("=================================");
-    console.error("REGISTER ERROR");
+    console.error("❌ REGISTER ERROR");
     console.error(error);
     console.error("=================================");
 
@@ -117,12 +200,19 @@ exports.register = async (req, res) => {
     });
   }
 };
-//
-// Login
-//
+
+
+/* =====================================================
+   LOGIN
+===================================================== */
+
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    /* =====================================================
+       VALIDATION
+    ===================================================== */
 
     if (!email || !password) {
       return res.status(400).json({
@@ -131,7 +221,15 @@ exports.login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    const cleanEmail = email.toLowerCase().trim();
+
+    /* =====================================================
+       FIND USER
+    ===================================================== */
+
+    const user = await User.findOne({
+      email: cleanEmail,
+    });
 
     if (!user) {
       return res.status(401).json({
@@ -140,7 +238,14 @@ exports.login = async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    /* =====================================================
+       CHECK PASSWORD
+    ===================================================== */
+
+    const isMatch = await bcrypt.compare(
+      password,
+      user.password
+    );
 
     if (!isMatch) {
       return res.status(401).json({
@@ -149,11 +254,22 @@ exports.login = async (req, res) => {
       });
     }
 
+    /* =====================================================
+       GENERATE TOKEN
+    ===================================================== */
+
     const token = generateToken(user._id);
 
-    res.json({
+    /* =====================================================
+       RESPONSE
+    ===================================================== */
+
+    return res.status(200).json({
       success: true,
+      message: "Login successful.",
+
       token,
+
       user: {
         _id: user._id,
         fullName: user.fullName,
@@ -163,21 +279,24 @@ exports.login = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Login Error:", error);
+    console.error("❌ Login Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Login failed.",
     });
   }
 };
 
-//
-// Get Profile
-//
+
+/* =====================================================
+   GET PROFILE
+===================================================== */
+
 exports.getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select("-password");
+    const user = await User.findById(req.user._id)
+      .select("-password");
 
     if (!user) {
       return res.status(404).json({
@@ -186,23 +305,25 @@ exports.getProfile = async (req, res) => {
       });
     }
 
-    res.json({
+    return res.status(200).json({
       success: true,
       user,
     });
   } catch (error) {
-    console.error("Profile Error:", error);
+    console.error("❌ Profile Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Unable to load profile.",
     });
   }
 };
 
-//
-// Update Profile
-//
+
+/* =====================================================
+   UPDATE PROFILE
+===================================================== */
+
 exports.updateProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -214,32 +335,52 @@ exports.updateProfile = async (req, res) => {
       });
     }
 
-    user.fullName = req.body.fullName || user.fullName;
-    user.profileImage = req.body.profileImage || user.profileImage;
+    if (req.body.fullName) {
+      user.fullName = req.body.fullName;
+    }
+
+    if (req.body.profileImage) {
+      user.profileImage = req.body.profileImage;
+    }
 
     await user.save();
 
-    res.json({
+    return res.status(200).json({
       success: true,
       message: "Profile updated successfully.",
-      user,
+      user: {
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        profileImage: user.profileImage,
+      },
     });
   } catch (error) {
-    console.error("Update Profile Error:", error);
+    console.error("❌ Update Profile Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Profile update failed.",
     });
   }
 };
 
-//
-// Change Password
-//
+
+/* =====================================================
+   CHANGE PASSWORD
+===================================================== */
+
 exports.changePassword = async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const {
+      currentPassword,
+      newPassword,
+    } = req.body;
+
+    /* =====================================================
+       VALIDATION
+    ===================================================== */
 
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
@@ -247,6 +388,10 @@ exports.changePassword = async (req, res) => {
         message: "Please provide both passwords.",
       });
     }
+
+    /* =====================================================
+       FIND USER
+    ===================================================== */
 
     const user = await User.findById(req.user._id);
 
@@ -257,7 +402,14 @@ exports.changePassword = async (req, res) => {
       });
     }
 
-    const match = await bcrypt.compare(currentPassword, user.password);
+    /* =====================================================
+       CHECK CURRENT PASSWORD
+    ===================================================== */
+
+    const match = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
 
     if (!match) {
       return res.status(400).json({
@@ -266,18 +418,25 @@ exports.changePassword = async (req, res) => {
       });
     }
 
-    user.password = await bcrypt.hash(newPassword, 10);
+    /* =====================================================
+       HASH NEW PASSWORD
+    ===================================================== */
+
+    user.password = await bcrypt.hash(
+      newPassword,
+      10
+    );
 
     await user.save();
 
-    res.json({
+    return res.status(200).json({
       success: true,
       message: "Password changed successfully.",
     });
   } catch (error) {
-    console.error("Change Password Error:", error);
+    console.error("❌ Change Password Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Unable to change password.",
     });

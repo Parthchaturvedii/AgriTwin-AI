@@ -2,6 +2,10 @@ const mongoose = require("mongoose");
 
 const farmerSchema = new mongoose.Schema(
   {
+    /* =====================================================
+       USER REFERENCE
+    ===================================================== */
+
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -9,18 +13,39 @@ const farmerSchema = new mongoose.Schema(
       unique: true,
     },
 
+    /* =====================================================
+       FARMER INFORMATION
+    ===================================================== */
+
     phone: {
       type: String,
       required: true,
+      trim: true,
     },
 
-    state: String,
+    state: {
+      type: String,
+      trim: true,
+    },
 
-    district: String,
+    district: {
+      type: String,
+      trim: true,
+    },
 
-    village: String,
+    village: {
+      type: String,
+      trim: true,
+    },
 
-    pincode: String,
+    pincode: {
+      type: String,
+      trim: true,
+    },
+
+    /* =====================================================
+       FARM INFORMATION
+    ===================================================== */
 
     experience: {
       type: Number,
@@ -42,9 +67,13 @@ const farmerSchema = new mongoose.Schema(
       default: 0,
     },
   },
+
   {
     timestamps: true,
   }
 );
 
-module.exports = mongoose.model("Farmer", farmerSchema);
+module.exports = mongoose.model(
+  "Farmer",
+  farmerSchema
+);
