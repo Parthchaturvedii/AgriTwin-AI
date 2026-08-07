@@ -17,6 +17,7 @@ connectDB();
 ===================================== */
 
 const allowedOrigins = [
+  // Local development
   "http://localhost:5173",
   "http://localhost:3000",
 
@@ -32,7 +33,8 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow Postman, mobile apps and server-to-server requests
+    // Allow requests without Origin
+    // Example: Postman, mobile apps, server-to-server
     if (!origin) {
       return callback(null, true);
     }

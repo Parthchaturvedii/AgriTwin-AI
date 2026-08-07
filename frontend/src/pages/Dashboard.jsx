@@ -514,7 +514,7 @@ function Dashboard() {
                         <td>
 
                           <Link
-                            to={`/chat/${offer._id}`}
+                            to={`/chat/${offer.chat?._id || offer.chat}`}
                             className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition"
                           >
                             <MessageCircle size={16} />

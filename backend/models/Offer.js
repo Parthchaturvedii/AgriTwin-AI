@@ -37,14 +37,15 @@ const offerSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Pending", "Accepted", "Rejected"],
+      enum: ["Pending", "Hold", "Accepted", "Rejected"],
       default: "Pending",
     },
 
     chat: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Chat"
-},
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Chat",
+      default: null,
+    },
   },
   {
     timestamps: true,

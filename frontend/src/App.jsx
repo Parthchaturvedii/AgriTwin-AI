@@ -29,53 +29,52 @@ import Settings from "./pages/Settings";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 function App() {
-  const { user, loading } = useContext(AuthContext);
+  const { user, loading } =
+    useContext(AuthContext);
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100">
-        <h1 className="animate-pulse text-3xl font-bold text-green-600">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-2xl font-bold">
           🌱 Loading AgriTwin AI...
-        </h1>
+        </div>
       </div>
     );
   }
 
+  const homeRoute = user
+    ? user.role === "buyer"
+      ? "/buyer-dashboard"
+      : "/dashboard"
+    : "/login";
+
   return (
     <Routes>
 
-      {/* ================= Root ================= */}
+      {/* =================================================
+          ROOT
+      ================================================= */}
 
       <Route
         path="/"
         element={
-          user ? (
-            <Navigate
-              to={
-                user.role === "buyer"
-                  ? "/buyer-dashboard"
-                  : "/dashboard"
-              }
-              replace
-            />
-          ) : (
-            <Navigate to="/login" replace />
-          )
+          <Navigate
+            to={homeRoute}
+            replace
+          />
         }
       />
 
-      {/* ================= Auth ================= */}
+      {/* =================================================
+          AUTH
+      ================================================= */}
 
       <Route
         path="/login"
         element={
           user ? (
             <Navigate
-              to={
-                user.role === "buyer"
-                  ? "/buyer-dashboard"
-                  : "/dashboard"
-              }
+              to={homeRoute}
               replace
             />
           ) : (
@@ -89,11 +88,7 @@ function App() {
         element={
           user ? (
             <Navigate
-              to={
-                user.role === "buyer"
-                  ? "/buyer-dashboard"
-                  : "/dashboard"
-              }
+              to={homeRoute}
               replace
             />
           ) : (
@@ -102,7 +97,9 @@ function App() {
         }
       />
 
-            {/* ================= Farmer Dashboard ================= */}
+      {/* =================================================
+          DASHBOARDS
+      ================================================= */}
 
       <Route
         path="/dashboard"
@@ -113,8 +110,6 @@ function App() {
         }
       />
 
-      {/* ================= Buyer Dashboard ================= */}
-
       <Route
         path="/buyer-dashboard"
         element={
@@ -124,7 +119,9 @@ function App() {
         }
       />
 
-      {/* ================= Marketplace ================= */}
+      {/* =================================================
+          MARKETPLACE
+      ================================================= */}
 
       <Route
         path="/marketplace"
@@ -153,7 +150,9 @@ function App() {
         }
       />
 
-      {/* ================= Offers ================= */}
+      {/* =================================================
+          OFFERS
+      ================================================= */}
 
       <Route
         path="/offers"
@@ -173,7 +172,9 @@ function App() {
         }
       />
 
-      {/* ================= Inbox & Chat ================= */}
+      {/* =================================================
+          CHAT
+      ================================================= */}
 
       <Route
         path="/inbox"
@@ -193,7 +194,9 @@ function App() {
         }
       />
 
-      {/* ================= Farm Management ================= */}
+      {/* =================================================
+          FARM MANAGEMENT
+      ================================================= */}
 
       <Route
         path="/farms"
@@ -204,7 +207,9 @@ function App() {
         }
       />
 
-      {/* ================= AI Advisor ================= */}
+      {/* =================================================
+          AI ADVISOR
+      ================================================= */}
 
       <Route
         path="/ai"
@@ -215,7 +220,9 @@ function App() {
         }
       />
 
-      {/* ================= Digital Twin ================= */}
+      {/* =================================================
+          DIGITAL TWIN
+      ================================================= */}
 
       <Route
         path="/digital-twin"
@@ -226,7 +233,9 @@ function App() {
         }
       />
 
-      {/* ================= Disease Detection ================= */}
+      {/* =================================================
+          DISEASE
+      ================================================= */}
 
       <Route
         path="/disease"
@@ -237,7 +246,9 @@ function App() {
         }
       />
 
-      {/* ================= Weather ================= */}
+      {/* =================================================
+          WEATHER
+      ================================================= */}
 
       <Route
         path="/weather"
@@ -248,7 +259,9 @@ function App() {
         }
       />
 
-      {/* ================= Settings ================= */}
+      {/* =================================================
+          SETTINGS
+      ================================================= */}
 
       <Route
         path="/settings"
@@ -259,19 +272,15 @@ function App() {
         }
       />
 
-            {/* ================= 404 / Fallback ================= */}
+      {/* =================================================
+          404
+      ================================================= */}
 
       <Route
         path="*"
         element={
           <Navigate
-            to={
-              user
-                ? user.role === "buyer"
-                  ? "/buyer-dashboard"
-                  : "/dashboard"
-                : "/login"
-            }
+            to={homeRoute}
             replace
           />
         }

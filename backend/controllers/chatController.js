@@ -2,7 +2,7 @@ const Chat = require("../models/Chat");
 const Message = require("../models/Message");
 
 /* =====================================================
-   Get My Inbox
+   GET MY INBOX
 ===================================================== */
 
 exports.getInbox = async (req, res) => {
@@ -13,16 +13,17 @@ exports.getInbox = async (req, res) => {
     })
       .populate("participants", "fullName email role")
       .populate("listing")
+      .populate("offer")
       .sort({ lastMessageAt: -1 });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       chats,
     });
   } catch (err) {
-    console.error(err);
+    console.error("GET INBOX ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: err.message,
     });
@@ -30,49 +31,51 @@ exports.getInbox = async (req, res) => {
 };
 
 /* =====================================================
-   Get Single Chat
+   GET SINGLE CHAT
 ===================================================== */
 
 exports.getChat = async (req, res) => {
   try {
     const chat = await Chat.findById(req.params.chatId)
       .populate("participants", "fullName email role")
-      .populate("listing");
+      .populate("listing")
+      .populate("offer");
 
     if (!chat) {
       return res.status(404).json({
         success: false,
-        message: "Chat not found",
+        message: "Chat not found.",
       });
     }
 
     const allowed = chat.participants.some(
-      (user) => user._id.toString() === req.user._id.toString()
+      (user) =>
+        user._id.toString() === req.user._id.toString()
     );
 
     if (!allowed) {
       return res.status(403).json({
         success: false,
-        message: "Unauthorized",
+        message: "You are not a participant in this chat.",
       });
     }
 
     const messages = await Message.find({
       chat: chat._id,
     })
-      .populate("sender", "fullName")
-      .populate("receiver", "fullName")
+      .populate("sender", "fullName email role")
+      .populate("receiver", "fullName email role")
       .sort({ createdAt: 1 });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       chat,
       messages,
     });
   } catch (err) {
-    console.error(err);
+    console.error("GET CHAT ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: err.message,
     });
@@ -80,53 +83,115 @@ exports.getChat = async (req, res) => {
 };
 
 /* =====================================================
-   Send Message
+   SEND NORMAL MESSAGE
 ===================================================== */
 
 exports.sendMessage = async (req, res) => {
   try {
     const { message } = req.body;
 
+    if (!message || !message.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Message cannot be empty.",
+      });
+    }
+
     const chat = await Chat.findById(req.params.chatId);
 
     if (!chat) {
       return res.status(404).json({
         success: false,
-        message: "Chat not found",
+        message: "Chat not found.",
       });
     }
 
-    const receiver = chat.participants.find(
-      (id) => id.toString() !== req.user._id.toString()
+    /* Check participant */
+
+    const userId = req.user._id.toString();
+
+    const allowed = chat.participants.some(
+      (id) => id.toString() === userId
     );
+
+    if (!allowed) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not a participant in this chat.",
+      });
+    }
+
+    /* Chat must be active */
+
+    if (chat.status !== "Active") {
+      return res.status(400).json({
+        success: false,
+        message: "This chat is not active.",
+      });
+    }
+
+    /* Find receiver */
+
+    const receiver = chat.participants.find(
+      (id) => id.toString() !== userId
+    );
+
+    if (!receiver) {
+      return res.status(400).json({
+        success: false,
+        message: "Receiver not found.",
+      });
+    }
+
+    /* Create message */
 
     const newMessage = await Message.create({
       chat: chat._id,
       sender: req.user._id,
       receiver,
-      message,
+      message: message.trim(),
+      type: "text",
     });
 
-    chat.lastMessage = message;
+    /* Update chat */
+
+    chat.lastMessage = message.trim();
     chat.lastMessageAt = new Date();
 
-    if (receiver.toString() === chat.participants[0].toString()) {
-      chat.unreadCount.farmer += 1;
-    } else {
-      chat.unreadCount.buyer += 1;
+    /* Correct unread count */
+
+    if (
+      receiver.toString() ===
+      chat.farmer.toString()
+    ) {
+      chat.unreadCount.farmer =
+        (chat.unreadCount.farmer || 0) + 1;
+    } else if (
+      receiver.toString() ===
+      chat.buyer.toString()
+    ) {
+      chat.unreadCount.buyer =
+        (chat.unreadCount.buyer || 0) + 1;
     }
 
     await chat.save();
 
-    res.status(201).json({
+    /* Populate message before returning */
+
+    const populatedMessage =
+      await Message.findById(newMessage._id)
+        .populate("sender", "fullName email role")
+        .populate("receiver", "fullName email role");
+
+    return res.status(201).json({
       success: true,
-      message: "Message sent.",
-      newMessage,
+      message: "Message sent successfully.",
+      newMessage: populatedMessage,
     });
   } catch (err) {
-    console.error(err);
+    console.error("SEND MESSAGE ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: err.message,
     });
@@ -134,66 +199,108 @@ exports.sendMessage = async (req, res) => {
 };
 
 /* =====================================================
-   Counter Offer
+   COUNTER OFFER
 ===================================================== */
 
 exports.counterOffer = async (req, res) => {
   try {
     const { offerPrice, message } = req.body;
 
+    if (!offerPrice || Number(offerPrice) <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid counter offer price is required.",
+      });
+    }
+
     const chat = await Chat.findById(req.params.chatId);
 
     if (!chat) {
       return res.status(404).json({
         success: false,
-        message: "Chat not found",
+        message: "Chat not found.",
       });
     }
 
+    const userId = req.user._id.toString();
+
     const allowed = chat.participants.some(
-      (id) => id.toString() === req.user._id.toString()
+      (id) => id.toString() === userId
     );
 
     if (!allowed) {
       return res.status(403).json({
         success: false,
-        message: "Unauthorized",
+        message: "Unauthorized.",
+      });
+    }
+
+    if (chat.status !== "Active") {
+      return res.status(400).json({
+        success: false,
+        message: "This chat is not active.",
       });
     }
 
     const receiver = chat.participants.find(
-      (id) => id.toString() !== req.user._id.toString()
+      (id) => id.toString() !== userId
     );
+
+    if (!receiver) {
+      return res.status(400).json({
+        success: false,
+        message: "Receiver not found.",
+      });
+    }
+
+    const counterMessage =
+      message?.trim() ||
+      `Counter Offer ₹${Number(
+        offerPrice
+      ).toLocaleString("en-IN")}`;
 
     const newMessage = await Message.create({
       chat: chat._id,
       sender: req.user._id,
       receiver,
-      message: message || `Counter Offer ₹${offerPrice}`,
-      offerPrice,
-      messageType: "counterOffer",
+      message: counterMessage,
+      type: "counterOffer",
+      offerPrice: Number(offerPrice),
     });
 
-    chat.lastMessage = message || `Counter Offer ₹${offerPrice}`;
+    chat.lastMessage = counterMessage;
     chat.lastMessageAt = new Date();
 
-    if (chat.farmer && receiver.toString() === chat.farmer.toString()) {
-      chat.unreadCount.farmer++;
-    } else {
-      chat.unreadCount.buyer++;
+    if (
+      receiver.toString() ===
+      chat.farmer.toString()
+    ) {
+      chat.unreadCount.farmer =
+        (chat.unreadCount.farmer || 0) + 1;
+    } else if (
+      receiver.toString() ===
+      chat.buyer.toString()
+    ) {
+      chat.unreadCount.buyer =
+        (chat.unreadCount.buyer || 0) + 1;
     }
 
     await chat.save();
 
-    res.status(201).json({
+    const populatedMessage =
+      await Message.findById(newMessage._id)
+        .populate("sender", "fullName email role")
+        .populate("receiver", "fullName email role");
+
+    return res.status(201).json({
       success: true,
       message: "Counter offer sent successfully.",
-      newMessage,
+      newMessage: populatedMessage,
     });
   } catch (err) {
-    console.error(err);
+    console.error("COUNTER OFFER ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: err.message,
     });
@@ -201,7 +308,7 @@ exports.counterOffer = async (req, res) => {
 };
 
 /* =====================================================
-   Mark Chat Read
+   MARK CHAT READ
 ===================================================== */
 
 exports.markRead = async (req, res) => {
@@ -211,7 +318,20 @@ exports.markRead = async (req, res) => {
     if (!chat) {
       return res.status(404).json({
         success: false,
-        message: "Chat not found",
+        message: "Chat not found.",
+      });
+    }
+
+    const userId = req.user._id.toString();
+
+    const allowed = chat.participants.some(
+      (id) => id.toString() === userId
+    );
+
+    if (!allowed) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized.",
       });
     }
 
@@ -222,113 +342,38 @@ exports.markRead = async (req, res) => {
         seen: false,
       },
       {
-        seen: true,
+        $set: {
+          seen: true,
+        },
       }
     );
 
-    if (req.user.role === "farmer") {
+    /* Reset correct user's unread count */
+
+    if (
+      chat.farmer.toString() === userId
+    ) {
       chat.unreadCount.farmer = 0;
-    } else {
+    }
+
+    if (
+      chat.buyer.toString() === userId
+    ) {
       chat.unreadCount.buyer = 0;
     }
 
     await chat.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Messages marked as read.",
     });
   } catch (err) {
-    console.error(err);
+    console.error("MARK READ ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: err.message,
     });
   }
-};exports.sendMessage = async (req,res)=>{
-
-    try{
-
-        const { message } = req.body;
-
-        const chat = await Chat.findById(req.params.chatId);
-
-        if(!chat){
-
-            return res.status(404).json({
-                success:false,
-                message:"Chat not found"
-            });
-
-        }
-
-        const allowed = chat.participants.some(
-            id=>id.toString()===req.user._id.toString()
-        );
-
-        if(!allowed){
-
-            return res.status(403).json({
-                success:false,
-                message:"Unauthorized"
-            });
-
-        }
-
-        const receiver = chat.participants.find(
-            id=>id.toString()!==req.user._id.toString()
-        );
-
-        const newMessage = await Message.create({
-
-            chat:chat._id,
-
-            sender:req.user._id,
-
-            receiver,
-
-            message,
-
-        });
-
-        chat.lastMessage = message;
-
-        chat.lastMessageAt = new Date();
-
-        if(receiver.toString()===chat.farmer.toString()){
-
-            chat.unreadCount.farmer++;
-
-        }else{
-
-            chat.unreadCount.buyer++;
-
-        }
-
-        await chat.save();
-
-        res.status(201).json({
-
-            success:true,
-
-            newMessage,
-
-        });
-
-    }
-    catch(err){
-
-        console.error(err);
-
-        res.status(500).json({
-
-            success:false,
-
-            message:err.message
-
-        });
-
-    }
-
-}
+};

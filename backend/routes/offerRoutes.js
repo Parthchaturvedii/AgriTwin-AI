@@ -1,4 +1,5 @@
 const express = require("express");
+
 const router = express.Router();
 
 const protect = require("../middleware/authMiddleware");
@@ -9,16 +10,52 @@ const {
   getFarmerOffers,
   acceptOffer,
   rejectOffer,
+  holdOffer,
 } = require("../controllers/offerController");
 
+
+/* Buyer creates offer */
 router.post("/:id", protect, createOffer);
 
-router.get("/buyer/my-offers", protect, getBuyerOffers);
 
-router.get("/farmer", protect, getFarmerOffers);
+/* Buyer sees own offers */
+router.get(
+  "/buyer/my-offers",
+  protect,
+  getBuyerOffers
+);
 
-router.put("/accept/:id", protect, acceptOffer);
 
-router.put("/reject/:id", protect, rejectOffer);
+/* Farmer sees received offers */
+router.get(
+  "/farmer",
+  protect,
+  getFarmerOffers
+);
+
+
+/* Farmer accepts */
+router.put(
+  "/accept/:id",
+  protect,
+  acceptOffer
+);
+
+
+/* Farmer rejects */
+router.put(
+  "/reject/:id",
+  protect,
+  rejectOffer
+);
+
+
+/* Farmer holds */
+router.put(
+  "/hold/:id",
+  protect,
+  holdOffer
+);
+
 
 module.exports = router;

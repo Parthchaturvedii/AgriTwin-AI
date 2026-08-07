@@ -8,14 +8,53 @@ const {
   getInbox,
   getChat,
   sendMessage,
+  counterOffer,
   markRead,
 } = require("../controllers/chatController");
-router.get("/", protect, getInbox);
 
-router.get("/:chatId", protect, getChat);
+/* =====================================================
+   INBOX
+===================================================== */
 
-router.post("/:chatId", protect, sendMessage);
+router.get(
+  "/",
+  protect,
+  getInbox
+);
 
+/* =====================================================
+   SINGLE CHAT
+===================================================== */
+
+router.get(
+  "/:chatId",
+  protect,
+  getChat
+);
+
+/* =====================================================
+   SEND MESSAGE
+===================================================== */
+
+router.post(
+  "/:chatId",
+  protect,
+  sendMessage
+);
+
+/* =====================================================
+   COUNTER OFFER
+===================================================== */
+
+router.post(
+  "/:chatId/counter-offer",
+  protect,
+  counterOffer
+);
+
+/* =====================================================
+   MARK READ
+===================================================== */
 
 router.put(
   "/read/:chatId",

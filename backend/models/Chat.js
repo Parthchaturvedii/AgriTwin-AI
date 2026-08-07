@@ -15,6 +15,7 @@ const chatSchema = new mongoose.Schema(
       ref: "Offer",
       unique: true,
       sparse: true,
+      default: null,
     },
 
     listing: {
@@ -50,6 +51,7 @@ const chatSchema = new mongoose.Schema(
         type: Number,
         default: 0,
       },
+
       buyer: {
         type: Number,
         default: 0,

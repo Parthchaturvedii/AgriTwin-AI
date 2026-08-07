@@ -4,7 +4,7 @@ const Chat = require("../models/Chat");
 const Message = require("../models/Message");
 
 /* =====================================================
-   Buyer Creates Offer
+   BUYER CREATES OFFER
 ===================================================== */
 
 exports.createOffer = async (req, res) => {
@@ -14,19 +14,30 @@ exports.createOffer = async (req, res) => {
     if (!listing) {
       return res.status(404).json({
         success: false,
-        message: "Listing not found",
+        message: "Listing not found.",
       });
     }
 
-    // Buyer cannot send offer to own listing
-    if (listing.farmer.toString() === req.user._id.toString()) {
+    // Buyer cannot make an offer on own listing
+    if (
+      listing.farmer.toString() ===
+      req.user._id.toString()
+    ) {
       return res.status(400).json({
         success: false,
         message: "You cannot make an offer on your own listing.",
       });
     }
 
-    // Prevent duplicate offers
+    // Listing must be available
+    if (listing.status !== "Available") {
+      return res.status(400).json({
+        success: false,
+        message: "This crop listing is no longer available.",
+      });
+    }
+
+    // Prevent duplicate offer
     const existingOffer = await Offer.findOne({
       listing: listing._id,
       buyer: req.user._id,
@@ -35,108 +46,141 @@ exports.createOffer = async (req, res) => {
     if (existingOffer) {
       return res.status(400).json({
         success: false,
-        message: "You have already submitted an offer for this listing.",
+        message:
+          "You have already submitted an offer for this listing.",
       });
     }
 
-    // Create Offer
+    // Validate offer data
+    if (!req.body.offeredPrice || !req.body.quantity) {
+      return res.status(400).json({
+        success: false,
+        message: "Offered price and quantity are required.",
+      });
+    }
+
+    /* =========================
+       CREATE OFFER
+    ========================= */
+
     const offer = await Offer.create({
       listing: listing._id,
       buyer: req.user._id,
       farmer: listing.farmer,
-      offeredPrice: req.body.offeredPrice,
-      quantity: req.body.quantity,
-      message: req.body.message,
+      offeredPrice: Number(req.body.offeredPrice),
+      quantity: Number(req.body.quantity),
+      message: req.body.message || "",
       status: "Pending",
     });
 
-    // Create Chat Automatically
-    // Find existing chat
-let chat = await Chat.findOne({
-  listing: listing._id,
-  participants: {
-    $all: [req.user._id, listing.farmer],
-  },
-});
+    /* =========================
+       FIND / CREATE CHAT
+    ========================= */
 
-// Create chat if it doesn't exist
-if (!chat) {
-  chat = await Chat.create({
-    participants: [
-      req.user._id,
-      listing.farmer,
-    ],
+    let chat = await Chat.findOne({
+      listing: listing._id,
+      participants: {
+        $all: [
+          req.user._id,
+          listing.farmer,
+        ],
+      },
+    });
 
-    listing: listing._id,
+    if (!chat) {
+      chat = await Chat.create({
+        participants: [
+          req.user._id,
+          listing.farmer,
+        ],
 
-    lastMessage:
-      req.body.message ||
-      "Buyer submitted an offer.",
+        listing: listing._id,
 
-    lastMessageAt: new Date(),
+        buyer: req.user._id,
 
-    unreadCount: {
-      farmer: 1,
-      buyer: 0,
-    },
+        farmer: listing.farmer,
 
-    status: "Active",
-  });
-}
+        offer: offer._id,
 
-// Create first message
-await Message.create({
-  chat: chat._id,
+        lastMessage:
+          req.body.message ||
+          `Offer submitted for ₹${req.body.offeredPrice}`,
 
-  sender: req.user._id,
+        lastMessageAt: new Date(),
 
-  receiver: listing.farmer,
+        unreadCount: {
+          farmer: 1,
+          buyer: 0,
+        },
 
-  message:
-    req.body.message ||
-    `Offer submitted for ₹${req.body.offeredPrice}`,
+        status: "Active",
+      });
+    } else {
+      chat.offer = offer._id;
 
-  type: "offer",
-});
+      chat.lastMessage =
+        req.body.message ||
+        `Offer submitted for ₹${req.body.offeredPrice}`;
 
-// Update chat
-chat.lastMessage =
-  req.body.message ||
-  `Offer submitted for ₹${req.body.offeredPrice}`;
+      chat.lastMessageAt = new Date();
 
-chat.lastMessageAt = new Date();
+      chat.unreadCount =
+        chat.unreadCount || {
+          farmer: 0,
+          buyer: 0,
+        };
 
-chat.unreadCount.farmer += 1;
+      chat.unreadCount.farmer =
+        (chat.unreadCount.farmer || 0) + 1;
 
-await chat.save();
+      chat.status = "Active";
 
-// Link chat with offer
-offer.chat = chat._id;
-await offer.save();
+      await chat.save();
+    }
 
-    // Link chat to offer
+    /* =========================
+       CREATE OFFER MESSAGE
+    ========================= */
+
+    await Message.create({
+      chat: chat._id,
+      sender: req.user._id,
+      receiver: listing.farmer,
+
+      message:
+        req.body.message ||
+        `Offer submitted for ₹${req.body.offeredPrice}`,
+
+      type: "offer",
+    });
+
+    /* =========================
+       LINK CHAT TO OFFER
+    ========================= */
+
     offer.chat = chat._id;
+
     await offer.save();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Offer submitted successfully.",
       offer,
       chatId: chat._id,
     });
-
   } catch (err) {
-    console.error(err);
+    console.error("CREATE OFFER ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: err.message,
     });
   }
 };
 
+
 /* =====================================================
-   Buyer -> My Offers
+   BUYER → MY OFFERS
 ===================================================== */
 
 exports.getBuyerOffers = async (req, res) => {
@@ -148,23 +192,23 @@ exports.getBuyerOffers = async (req, res) => {
       .populate("farmer", "fullName email")
       .populate("chat");
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       offers,
     });
-
   } catch (err) {
-    console.error(err);
+    console.error("GET BUYER OFFERS ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: err.message,
     });
   }
 };
 
+
 /* =====================================================
-   Farmer -> Received Offers
+   FARMER → RECEIVED OFFERS
 ===================================================== */
 
 exports.getFarmerOffers = async (req, res) => {
@@ -176,23 +220,23 @@ exports.getFarmerOffers = async (req, res) => {
       .populate("listing")
       .populate("chat");
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       offers,
     });
-
   } catch (err) {
-    console.error(err);
+    console.error("GET FARMER OFFERS ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: err.message,
     });
   }
 };
 
+
 /* =====================================================
-   Accept Offer
+   ACCEPT OFFER
 ===================================================== */
 
 exports.acceptOffer = async (req, res) => {
@@ -202,32 +246,66 @@ exports.acceptOffer = async (req, res) => {
     if (!offer) {
       return res.status(404).json({
         success: false,
-        message: "Offer not found",
+        message: "Offer not found.",
       });
     }
 
-    if (offer.farmer.toString() !== req.user._id.toString()) {
+    // Only farmer can accept
+    if (
+      offer.farmer.toString() !==
+      req.user._id.toString()
+    ) {
       return res.status(403).json({
         success: false,
-        message: "Unauthorized",
+        message: "Unauthorized.",
       });
     }
 
+    // Only Pending or Hold offers can be accepted
+    if (
+      offer.status !== "Pending" &&
+      offer.status !== "Hold"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          `Offer is already ${offer.status}.`,
+      });
+    }
+
+    /* =========================
+       ACCEPT OFFER
+    ========================= */
+
     offer.status = "Accepted";
+
     await offer.save();
 
-    // Reject remaining offers
+    /* =========================
+       REJECT OTHER OFFERS
+    ========================= */
+
     await Offer.updateMany(
       {
         listing: offer.listing,
-        _id: { $ne: offer._id },
+        _id: {
+          $ne: offer._id,
+        },
+        status: {
+          $in: ["Pending", "Hold"],
+        },
       },
       {
-        status: "Rejected",
+        $set: {
+          status: "Rejected",
+        },
       }
     );
 
-    // Mark crop sold
+    /* =========================
+       MARK LISTING SOLD
+    ========================= */
+
     await CropListing.findByIdAndUpdate(
       offer.listing,
       {
@@ -235,43 +313,53 @@ exports.acceptOffer = async (req, res) => {
       }
     );
 
-    // Update Chat
+    /* =========================
+       ACTIVATE CHAT
+    ========================= */
+
     if (offer.chat) {
-  await Chat.findByIdAndUpdate(
-    offer.chat,
-    {
-      lastMessage: "Offer Accepted ✅",
-      lastMessageAt: new Date(),
-      status: "Archived",
+      await Chat.findByIdAndUpdate(
+        offer.chat,
+        {
+          lastMessage:
+            "Offer Accepted ✅ You can now negotiate.",
+          lastMessageAt: new Date(),
+          status: "Active",
+        }
+      );
+
+      await Message.create({
+        chat: offer.chat,
+        sender: req.user._id,
+        receiver: offer.buyer,
+
+        message:
+          "Your offer has been accepted. You can now negotiate.",
+
+        type: "system",
+      });
     }
-  );
 
-  await Message.create({
-    chat: offer.chat,
-    sender: req.user._id,
-    receiver: offer.buyer,
-    message: "Your offer has been accepted.",
-    type: "system",
-  });
-}
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Offer Accepted Successfully",
+      message:
+        "Offer accepted successfully. Buyer can now chat with you.",
+      offer,
+      chatId: offer.chat || null,
     });
-
   } catch (err) {
-    console.error(err);
+    console.error("ACCEPT OFFER ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: err.message,
     });
   }
 };
 
+
 /* =====================================================
-   Reject Offer
+   REJECT OFFER
 ===================================================== */
 
 exports.rejectOffer = async (req, res) => {
@@ -281,48 +369,154 @@ exports.rejectOffer = async (req, res) => {
     if (!offer) {
       return res.status(404).json({
         success: false,
-        message: "Offer not found",
+        message: "Offer not found.",
       });
     }
 
-    if (offer.farmer.toString() !== req.user._id.toString()) {
+    // Only farmer can reject
+    if (
+      offer.farmer.toString() !==
+      req.user._id.toString()
+    ) {
       return res.status(403).json({
         success: false,
-        message: "Unauthorized",
+        message: "Unauthorized.",
+      });
+    }
+
+    // Cannot reject already accepted/rejected
+    if (
+      offer.status === "Accepted" ||
+      offer.status === "Rejected"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          `Offer is already ${offer.status}.`,
       });
     }
 
     offer.status = "Rejected";
+
     await offer.save();
 
-    // Update Chat
+    /* =========================
+       UPDATE CHAT
+    ========================= */
+
     if (offer.chat) {
-  await Chat.findByIdAndUpdate(
-    offer.chat,
-    {
-      lastMessage: "Offer Rejected",
-      lastMessageAt: new Date(),
+      await Chat.findByIdAndUpdate(
+        offer.chat,
+        {
+          lastMessage: "Offer Rejected ❌",
+          lastMessageAt: new Date(),
+          status: "Active",
+        }
+      );
+
+      await Message.create({
+        chat: offer.chat,
+        sender: req.user._id,
+        receiver: offer.buyer,
+
+        message:
+          "Your offer has been rejected.",
+
+        type: "system",
+      });
     }
-  );
 
-  await Message.create({
-    chat: offer.chat,
-    sender: req.user._id,
-    receiver: offer.buyer,
-    message: "Your offer has been rejected.",
-    type: "system",
-  });
-}
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Offer Rejected Successfully",
+      message: "Offer rejected successfully.",
+      offer,
     });
-
   } catch (err) {
-    console.error(err);
+    console.error("REJECT OFFER ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+
+/* =====================================================
+   HOLD OFFER
+===================================================== */
+
+exports.holdOffer = async (req, res) => {
+  try {
+    const offer = await Offer.findById(req.params.id);
+
+    if (!offer) {
+      return res.status(404).json({
+        success: false,
+        message: "Offer not found.",
+      });
+    }
+
+    // Only farmer can hold
+    if (
+      offer.farmer.toString() !==
+      req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized.",
+      });
+    }
+
+    // Only pending offers can be placed on hold
+    if (offer.status !== "Pending") {
+      return res.status(400).json({
+        success: false,
+        message:
+          `Offer is already ${offer.status}.`,
+      });
+    }
+
+    offer.status = "Hold";
+
+    await offer.save();
+
+    /* =========================
+       UPDATE CHAT
+    ========================= */
+
+    if (offer.chat) {
+      await Chat.findByIdAndUpdate(
+        offer.chat,
+        {
+          lastMessage:
+            "Offer placed on hold ⏸️",
+          lastMessageAt: new Date(),
+          status: "Active",
+        }
+      );
+
+      await Message.create({
+        chat: offer.chat,
+        sender: req.user._id,
+        receiver: offer.buyer,
+
+        message:
+          "Your offer has been placed on hold. The farmer will decide later.",
+
+        type: "system",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Offer placed on hold.",
+      offer,
+    });
+  } catch (err) {
+    console.error("HOLD OFFER ERROR:", err);
+
+    return res.status(500).json({
       success: false,
       message: err.message,
     });
