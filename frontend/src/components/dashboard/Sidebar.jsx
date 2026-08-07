@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
+
 import {
   LayoutDashboard,
   Sprout,
@@ -13,6 +14,24 @@ import {
 
 function Sidebar({ sidebarOpen, setSidebarOpen }) {
   const location = useLocation();
+
+  // ==========================================
+  // Get currently logged-in user
+  // ==========================================
+
+  let currentUser = null;
+
+  try {
+    const storedUser = localStorage.getItem("user");
+
+    if (storedUser) {
+      currentUser = JSON.parse(storedUser);
+    }
+  } catch (error) {
+    console.error("Unable to read user:", error);
+  }
+
+  const userName = currentUser?.fullName || "User";
 
   const menuItems = [
     {
@@ -53,7 +72,6 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
   ];
 
   const handleDashboardClick = (e) => {
-    // Already on dashboard → just toggle sidebar
     if (location.pathname === "/dashboard") {
       e.preventDefault();
       setSidebarOpen((prev) => !prev);
@@ -62,7 +80,10 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
   return (
     <>
-      {/* Show button when sidebar is hidden */}
+      {/* ==========================================
+          Open Sidebar Button
+      ========================================== */}
+
       {!sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}
@@ -72,22 +93,22 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
         </button>
       )}
 
-      {/* Sidebar */}
+      {/* ==========================================
+          Sidebar
+      ========================================== */}
+
       <aside
-        className={`fixed left-0 top-0 z-50 h-screen w-72
-        border-r border-gray-200
-        bg-white dark:bg-slate-900
-        shadow-xl
-        transition-transform duration-300
-        ${
+        className={`fixed left-0 top-0 z-50 h-screen w-72 border-r border-gray-200 bg-white shadow-xl transition-transform duration-300 dark:border-slate-700 dark:bg-slate-900 ${
           sidebarOpen
             ? "translate-x-0"
             : "-translate-x-full"
         }`}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 p-6 dark:border-slate-700">
+        {/* ==========================================
+            Header
+        ========================================== */}
 
+        <div className="flex items-center justify-between border-b border-gray-200 p-6 dark:border-slate-700">
           <div>
             <h1 className="text-3xl font-bold text-green-600">
               🌱 AgriTwin AI
@@ -104,12 +125,13 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
           >
             <ChevronLeft size={20} />
           </button>
-
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 space-y-2 p-4">
+        {/* ==========================================
+            Navigation
+        ========================================== */}
 
+        <nav className="flex-1 space-y-2 p-4">
           {menuItems.map((item) => (
             <NavLink
               key={item.path}
@@ -131,28 +153,26 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               <span>{item.name}</span>
             </NavLink>
           ))}
-
         </nav>
 
-        {/* Footer */}
+        {/* ==========================================
+            User Footer
+        ========================================== */}
+
         <div className="border-t border-gray-200 p-5 dark:border-slate-700">
-
           <div className="rounded-xl bg-green-50 p-4 dark:bg-slate-800">
-
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Logged in as
             </p>
 
-            <h3 className="mt-1 font-semibold text-green-700">
-              Parth
+            <h3 className="mt-1 font-semibold text-green-700 dark:text-green-400">
+              {userName}
             </h3>
 
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Smart Farmer Dashboard
             </p>
-
           </div>
-
         </div>
       </aside>
     </>

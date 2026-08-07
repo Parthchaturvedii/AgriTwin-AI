@@ -23,6 +23,7 @@ exports.register = async (req, res) => {
       companyName,
     } = req.body;
 
+    // Validate required fields
     if (!fullName || !email || !password || !role) {
       return res.status(400).json({
         success: false,
@@ -30,7 +31,18 @@ exports.register = async (req, res) => {
       });
     }
 
-    const existingUser = await User.findOne({ email });
+    // Validate role
+    if (!["farmer", "buyer"].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role.",
+      });
+    }
+
+    // Check existing user
+    const existingUser = await User.findOne({
+      email: email.toLowerCase().trim(),
+    });
 
     if (existingUser) {
       return res.status(400).json({
@@ -39,38 +51,50 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create user
     const user = await User.create({
-      fullName,
-      email,
+      fullName: fullName.trim(),
+      email: email.toLowerCase().trim(),
       password: hashedPassword,
       role,
     });
 
-    if (role === "farmer") {
-      await Farmer.create({
-        owner: user._id,
-        phone,
-        state,
-        district,
-        village,
-      });
+    try {
+      // Create Farmer profile
+      if (role === "farmer") {
+        await Farmer.create({
+          owner: user._id,
+          phone,
+          state,
+          district,
+          village,
+        });
+      }
+
+      // Create Buyer profile
+      if (role === "buyer") {
+        await Buyer.create({
+          owner: user._id,
+          companyName,
+          phone,
+          state,
+          district,
+        });
+      }
+    } catch (profileError) {
+      // Remove User if Farmer/Buyer creation fails
+      await User.findByIdAndDelete(user._id);
+
+      throw profileError;
     }
 
-    if (role === "buyer") {
-      await Buyer.create({
-        owner: user._id,
-        companyName,
-        phone,
-        state,
-        district,
-      });
-    }
-
+    // Generate JWT
     const token = generateToken(user._id);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Registration successful.",
       token,
@@ -82,15 +106,17 @@ exports.register = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Register Error:", error);
+    console.error("=================================");
+    console.error("REGISTER ERROR");
+    console.error(error);
+    console.error("=================================");
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Registration failed.",
+      message: error.message || "Registration failed.",
     });
   }
 };
-
 //
 // Login
 //

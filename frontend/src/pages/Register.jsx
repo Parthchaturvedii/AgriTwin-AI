@@ -68,16 +68,17 @@ function Register() {
         setMessage(data.message || "Registration Failed");
       }
     } catch (err) {
-      setIsSuccess(false);
+  setIsSuccess(false);
 
-      setMessage(
-        err.response?.data?.message ||
-          err.message ||
-          "Registration Failed"
-      );
-    } finally {
-      setLoading(false);
-    }
+  console.error("Registration Error:", err);
+
+  setMessage(
+    err.response?.data?.message ||
+      "Registration failed. Please try again."
+  );
+} finally {
+  setLoading(false);
+}
   };
 
   return (
