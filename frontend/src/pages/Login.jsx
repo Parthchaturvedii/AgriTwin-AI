@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Eye,
@@ -8,14 +8,15 @@ import {
 } from "lucide-react";
 
 import api from "../services/api";
+import { AuthContext } from "../context/AuthContext";
 
 function Login() {
   const navigate = useNavigate();
 
+  const { login } = useContext(AuthContext);
+
   const [showPassword, setShowPassword] = useState(false);
-
   const [loading, setLoading] = useState(false);
-
   const [message, setMessage] = useState("");
 
   const [formData, setFormData] = useState({
@@ -29,62 +30,78 @@ function Login() {
 
     setFormData((prev) => ({
       ...prev,
-      [name]:
-        type === "checkbox"
-          ? checked
-          : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    setLoading(true);
-    setMessage("");
+    try {
+      setLoading(true);
+      setMessage("");
 
-    const { data } = await api.post("/auth/login", {
-      email: formData.email,
-      password: formData.password,
-    });
+      console.log("🔐 Attempting login...");
 
-    if (!data.success || !data.token || !data.user) {
-      throw new Error("Invalid login response.");
-    }
-
-    // IMPORTANT:
-    // Update AuthContext immediately
-    login(data.user, data.token);
-
-    setMessage("✅ Login Successful");
-
-    // Redirect according to role
-    if (data.user.role === "buyer") {
-      navigate("/buyer-dashboard", {
-        replace: true,
+      const { data } = await api.post("/auth/login", {
+        email: formData.email,
+        password: formData.password,
       });
-    } else {
-      navigate("/dashboard", {
-        replace: true,
-      });
-    }
-  } catch (error) {
-    console.error("LOGIN ERROR:", error);
 
-    setMessage(
-      error.response?.data?.message ||
-        error.message ||
-        "Login Failed"
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+      console.log("✅ Login API Response:", data);
+
+      if (!data.success || !data.token || !data.user) {
+        throw new Error(
+          data.message || "Login failed. Invalid server response."
+        );
+      }
+
+      /*
+      ==========================================
+      SAVE AUTHENTICATION THROUGH AUTH CONTEXT
+      ==========================================
+      */
+
+      login(data.user, data.token);
+
+      setMessage("✅ Login Successful");
+
+      /*
+      ==========================================
+      REDIRECT ACCORDING TO ROLE
+      ==========================================
+      */
+
+      if (data.user.role === "buyer") {
+        navigate("/buyer-dashboard", {
+          replace: true,
+        });
+      } else {
+        navigate("/dashboard", {
+          replace: true,
+        });
+      }
+    } catch (error) {
+      console.error("================================");
+      console.error("❌ LOGIN ERROR:", error);
+      console.error("================================");
+
+      setMessage(
+        error.response?.data?.message ||
+          error.message ||
+          "Login Failed"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-100 via-white to-green-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100 p-6">
 
       <div className="w-full max-w-md rounded-3xl border border-white/30 bg-white/90 p-8 shadow-2xl backdrop-blur-xl">
+
+        {/* LOGO */}
 
         <div className="text-center">
 
@@ -111,10 +128,14 @@ function Login() {
 
         </div>
 
+        {/* LOGIN FORM */}
+
         <form
           onSubmit={handleSubmit}
           className="mt-8 space-y-5"
         >
+
+          {/* EMAIL */}
 
           <div>
 
@@ -133,6 +154,8 @@ function Login() {
             />
 
           </div>
+
+          {/* PASSWORD */}
 
           <div>
 
@@ -176,6 +199,8 @@ function Login() {
 
           </div>
 
+          {/* REMEMBER / FORGOT */}
+
           <div className="flex items-center justify-between">
 
             <label className="flex items-center gap-2 text-sm">
@@ -200,6 +225,8 @@ function Login() {
 
           </div>
 
+          {/* LOGIN BUTTON */}
+
           <button
             type="submit"
             disabled={loading}
@@ -212,6 +239,8 @@ function Login() {
 
         </form>
 
+        {/* MESSAGE */}
+
         {message && (
           <div
             className={`mt-5 rounded-xl p-3 text-center font-medium ${
@@ -223,6 +252,8 @@ function Login() {
             {message}
           </div>
         )}
+
+        {/* REGISTER */}
 
         <div className="mt-8 rounded-2xl bg-green-50 p-4">
 
