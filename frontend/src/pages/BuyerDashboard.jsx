@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+
 import {
   ShoppingCart,
   Package,
   IndianRupee,
-  TrendingUp,
   Store,
   Eye,
   MessageCircle,
@@ -33,27 +33,46 @@ function BuyerDashboard() {
   const [loadingOffers, setLoadingOffers] =
     useState(true);
 
+  // ==========================================
+  // LOAD DATA
+  // ==========================================
+
   useEffect(() => {
     fetchListings();
     fetchOffers();
   }, []);
 
+  // ==========================================
+  // FETCH MARKETPLACE LISTINGS
+  // ==========================================
+
   const fetchListings = async () => {
     try {
+      setLoadingListings(true);
+
       const { data } = await api.get("/marketplace");
 
       if (data.success) {
         setListings(data.listings || []);
       }
     } catch (err) {
-      console.log(err);
+      console.error(
+        "Buyer Marketplace Error:",
+        err
+      );
     } finally {
       setLoadingListings(false);
     }
   };
 
+  // ==========================================
+  // FETCH BUYER OFFERS
+  // ==========================================
+
   const fetchOffers = async () => {
     try {
+      setLoadingOffers(true);
+
       const { data } = await api.get(
         "/offers/buyer/my-offers"
       );
@@ -62,55 +81,68 @@ function BuyerDashboard() {
         setOffers(data.offers || []);
       }
     } catch (err) {
-      console.log(err);
+      console.error(
+        "Buyer Offers Error:",
+        err
+      );
     } finally {
       setLoadingOffers(false);
     }
   };
 
+  // ==========================================
+  // OFFER STATISTICS
+  // ==========================================
+
   const acceptedOffers = offers.filter(
-    (o) => o.status === "Accepted"
+    (offer) => offer.status === "Accepted"
   ).length;
 
   const pendingOffers = offers.filter(
-    (o) => o.status === "Pending"
+    (offer) => offer.status === "Pending"
   ).length;
 
   const rejectedOffers = offers.filter(
-    (o) => o.status === "Rejected"
+    (offer) => offer.status === "Rejected"
   ).length;
+
+  // ==========================================
+  // UI
+  // ==========================================
 
   return (
     <div className="min-h-screen bg-slate-100">
 
+      {/* ================= NAVBAR ================= */}
+
       <Navbar />
+
+      {/* ================= MAIN ================= */}
 
       <div className="p-8">
 
-        {/* Header */}
+        {/* ================= HEADER ================= */}
 
         <div className="flex justify-between items-center flex-wrap gap-5">
 
           <div>
 
             <h1 className="text-4xl font-bold text-gray-800">
-
               Buyer Dashboard
-
             </h1>
 
             <p className="text-gray-500 mt-2">
-
               Welcome back,
               <span className="font-semibold ml-2">
-                {user.fullName}
+                {user.fullName || "Buyer"}
               </span>
-
             </p>
 
           </div>
 
           <div className="flex gap-4 flex-wrap">
+
+            {/* Marketplace */}
 
             <Link
               to="/marketplace"
@@ -119,6 +151,8 @@ function BuyerDashboard() {
               Browse Marketplace
             </Link>
 
+            {/* Offers */}
+
             <Link
               to="/offers"
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition"
@@ -126,8 +160,10 @@ function BuyerDashboard() {
               My Offers
             </Link>
 
+            {/* Inbox */}
+
             <Link
-              to="/chat"
+              to="/inbox"
               className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition"
             >
               <MessageCircle size={20} />
@@ -138,7 +174,7 @@ function BuyerDashboard() {
 
         </div>
 
-        {/* Stats */}
+        {/* ================= STATS ================= */}
 
         <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6 mt-10">
 
@@ -180,9 +216,11 @@ function BuyerDashboard() {
 
         </div>
 
-        {/* Offer Overview */}
+        {/* ================= OFFER OVERVIEW ================= */}
 
         <div className="grid md:grid-cols-3 gap-6 mt-10">
+
+          {/* Pending */}
 
           <div className="bg-yellow-100 rounded-2xl p-6">
 
@@ -201,6 +239,8 @@ function BuyerDashboard() {
 
           </div>
 
+          {/* Accepted */}
+
           <div className="bg-green-100 rounded-2xl p-6">
 
             <CheckCircle
@@ -217,6 +257,8 @@ function BuyerDashboard() {
             </p>
 
           </div>
+
+          {/* Rejected */}
 
           <div className="bg-red-100 rounded-2xl p-6">
 
@@ -237,16 +279,14 @@ function BuyerDashboard() {
 
         </div>
 
-        {/* Marketplace */}
+        {/* ================= MARKETPLACE ================= */}
 
         <div className="bg-white rounded-3xl shadow-lg mt-10 p-8">
 
           <div className="flex justify-between items-center">
 
             <h2 className="text-3xl font-bold">
-
               Latest Crop Listings
-
             </h2>
 
             <Link
@@ -262,77 +302,67 @@ function BuyerDashboard() {
           {loadingListings ? (
 
             <div className="py-16 text-center text-xl font-semibold">
-
               Loading Marketplace...
-
             </div>
 
           ) : listings.length === 0 ? (
 
             <div className="py-16 text-center text-gray-500">
-
               No Listings Available
-
             </div>
 
           ) : (
 
             <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 mt-8">
 
-              {listings.slice(0, 6).map((item) => (
+              {listings
+                .slice(0, 6)
+                .map((item) => (
 
-                <div
-                  key={item._id}
-                  className="rounded-2xl border bg-white hover:shadow-xl transition p-6"
-                >
+                  <div
+                    key={item._id}
+                    className="rounded-2xl border bg-white hover:shadow-xl transition p-6"
+                  >
 
-                  <h2 className="text-2xl font-bold">
-
-                    {item.cropName}
-
-                  </h2>
-
-                  <p className="text-gray-500">
-
-                    {item.variety || "Premium Quality"}
-
-                  </p>
-
-                  <div className="mt-5 space-y-2">
-
-                    <p className="flex items-center gap-2">
-
-                      <Package size={18} />
-
-                      {item.quantity} {item.unit}
-
-                    </p>
-
-                    <p className="font-bold text-green-700 text-xl">
-
-                      ₹ {item.expectedPrice}
-
-                    </p>
+                    <h2 className="text-2xl font-bold">
+                      {item.cropName}
+                    </h2>
 
                     <p className="text-gray-500">
-
-                      📍 {item.district}, {item.state}
-
+                      {item.variety ||
+                        "Premium Quality"}
                     </p>
+
+                    <div className="mt-5 space-y-2">
+
+                      <p className="flex items-center gap-2">
+                        <Package size={18} />
+                        {item.quantity}{" "}
+                        {item.unit}
+                      </p>
+
+                      <p className="font-bold text-green-700 text-xl">
+                        ₹ {item.expectedPrice}
+                      </p>
+
+                      <p className="text-gray-500">
+                        📍 {item.district},{" "}
+                        {item.state}
+                      </p>
+
+                    </div>
+
+                    <Link
+                      to={`/listing/${item._id}`}
+                      className="mt-6 inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl transition"
+                    >
+                      <Eye size={18} />
+                      View Details
+                    </Link>
 
                   </div>
 
-                  <Link
-                    to={`/listing/${item._id}`}
-                    className="mt-6 inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl transition"
-                  >
-                    <Eye size={18} />
-                    View Details
-                  </Link>
-
-                </div>
-
-              ))}
+                ))}
 
             </div>
 
@@ -340,7 +370,7 @@ function BuyerDashboard() {
 
         </div>
 
-                {/* ================= Recent Offers ================= */}
+        {/* ================= RECENT OFFERS ================= */}
 
         <div className="bg-white rounded-3xl shadow-lg mt-10 p-8">
 
@@ -376,70 +406,108 @@ function BuyerDashboard() {
 
             <div className="space-y-5 mt-8">
 
-              {offers.slice(0, 5).map((offer) => (
+              {offers
+                .slice(0, 5)
+                .map((offer) => {
 
-                <div
-                  key={offer._id}
-                  className="border rounded-2xl p-6 flex flex-col lg:flex-row justify-between lg:items-center gap-5 hover:shadow-md transition"
-                >
+                  /*
+                   * IMPORTANT:
+                   * Chat route expects chatId.
+                   *
+                   * Therefore use:
+                   * offer.chat._id
+                   * or offer.chat
+                   *
+                   * NOT offer._id
+                   */
 
-                  <div>
+                  const chatId =
+                    offer.chat?._id ||
+                    offer.chat ||
+                    null;
 
-                    <h3 className="text-xl font-bold">
-                      {offer.listing?.cropName}
-                    </h3>
-
-                    <p className="mt-2">
-                      Offered Price :
-                      <b className="ml-2 text-green-700">
-                        ₹ {offer.offeredPrice}
-                      </b>
-                    </p>
-
-                    <p>
-                      Quantity :
-                      <b className="ml-2">
-                        {offer.quantity}
-                      </b>
-                    </p>
-
-                    <p className="text-gray-500 mt-2">
-                      Farmer :
-                      <span className="ml-2">
-                        {offer.farmer?.fullName}
-                      </span>
-                    </p>
-
-                  </div>
-
-                  <div className="flex flex-col items-end gap-3">
-
-                    <span
-                      className={`px-5 py-2 rounded-full text-white font-semibold
-                      ${
-                        offer.status === "Accepted"
-                          ? "bg-green-600"
-                          : offer.status === "Rejected"
-                          ? "bg-red-600"
-                          : "bg-yellow-500"
-                      }`}
+                  return (
+                    <div
+                      key={offer._id}
+                      className="border rounded-2xl p-6 flex flex-col lg:flex-row justify-between lg:items-center gap-5 hover:shadow-md transition"
                     >
-                      {offer.status}
-                    </span>
 
-                    <Link
-                      to={`/chat/${offer._id}`}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-xl flex items-center gap-2 transition"
-                    >
-                      <MessageCircle size={18} />
-                      Negotiate
-                    </Link>
+                      {/* OFFER INFORMATION */}
 
-                  </div>
+                      <div>
 
-                </div>
+                        <h3 className="text-xl font-bold">
+                          {offer.listing?.cropName ||
+                            "Crop"}
+                        </h3>
 
-              ))}
+                        <p className="mt-2">
+                          Offered Price:
+                          <b className="ml-2 text-green-700">
+                            ₹ {offer.offeredPrice}
+                          </b>
+                        </p>
+
+                        <p>
+                          Quantity:
+                          <b className="ml-2">
+                            {offer.quantity}
+                          </b>
+                        </p>
+
+                        <p className="text-gray-500 mt-2">
+                          Farmer:
+                          <span className="ml-2">
+                            {offer.farmer?.fullName ||
+                              "Farmer"}
+                          </span>
+                        </p>
+
+                      </div>
+
+                      {/* OFFER ACTIONS */}
+
+                      <div className="flex flex-col items-end gap-3">
+
+                        <span
+                          className={`px-5 py-2 rounded-full text-white font-semibold ${
+                            offer.status ===
+                            "Accepted"
+                              ? "bg-green-600"
+                              : offer.status ===
+                                "Rejected"
+                              ? "bg-red-600"
+                              : "bg-yellow-500"
+                          }`}
+                        >
+                          {offer.status}
+                        </span>
+
+                        {chatId ? (
+
+                          <Link
+                            to={`/chat/${chatId}`}
+                            className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-xl flex items-center gap-2 transition"
+                          >
+                            <MessageCircle
+                              size={18}
+                            />
+                            Negotiate
+                          </Link>
+
+                        ) : (
+
+                          <span className="text-sm text-gray-400">
+                            Chat not available
+                          </span>
+
+                        )}
+
+                      </div>
+
+                    </div>
+                  );
+                })}
 
             </div>
 
@@ -447,7 +515,7 @@ function BuyerDashboard() {
 
         </div>
 
-        {/* ================= Inbox ================= */}
+        {/* ================= BUYER INBOX ================= */}
 
         <div className="bg-white rounded-3xl shadow-lg mt-10 p-8">
 
@@ -460,7 +528,8 @@ function BuyerDashboard() {
               </h2>
 
               <p className="text-gray-500 mt-2">
-                Chat with farmers and negotiate offers in real-time.
+                Chat with farmers and negotiate
+                offers in real-time.
               </p>
 
             </div>
@@ -484,13 +553,18 @@ function BuyerDashboard() {
             </h3>
 
             <p className="text-gray-600 mt-3 max-w-xl mx-auto">
-              Every offer automatically creates a private conversation
-              between the buyer and the farmer. Use the inbox to negotiate
-              price, quantity, delivery, payment, and finalize the deal.
+              Every offer automatically creates
+              a private conversation between the
+              buyer and the farmer. Use the inbox
+              to negotiate price, quantity,
+              delivery, payment, and finalize the
+              deal.
             </p>
 
+            {/* FIXED: /inbox instead of /chat */}
+
             <Link
-              to="/chat"
+              to="/inbox"
               className="inline-flex items-center gap-2 mt-8 bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition"
             >
               <MessageCircle size={20} />
@@ -501,9 +575,11 @@ function BuyerDashboard() {
 
         </div>
 
-        {/* ================= Quick Actions ================= */}
+        {/* ================= QUICK ACTIONS ================= */}
 
         <div className="grid lg:grid-cols-3 gap-6 mt-10 mb-12">
+
+          {/* Marketplace */}
 
           <Link
             to="/marketplace"
@@ -517,10 +593,13 @@ function BuyerDashboard() {
             </h2>
 
             <p className="mt-3 opacity-90">
-              Browse all available crop listings across India.
+              Browse all available crop
+              listings across India.
             </p>
 
           </Link>
+
+          {/* My Offers */}
 
           <Link
             to="/offers"
@@ -534,13 +613,16 @@ function BuyerDashboard() {
             </h2>
 
             <p className="mt-3 opacity-90">
-              Track every offer you've sent to farmers.
+              Track every offer you've sent
+              to farmers.
             </p>
 
           </Link>
 
+          {/* Inbox */}
+
           <Link
-            to="/chat"
+            to="/inbox"
             className="bg-purple-600 hover:bg-purple-700 text-white rounded-3xl p-8 transition"
           >
 
@@ -551,17 +633,11 @@ function BuyerDashboard() {
             </h2>
 
             <p className="mt-3 opacity-90">
-              Negotiate prices, quantities and close deals with farmers.
+              Negotiate prices, quantities and
+              close deals with farmers.
             </p>
 
           </Link>
-
-          <Link
-  to="/inbox"
-  className="rounded-xl bg-indigo-600 px-6 py-3 text-white font-semibold shadow hover:bg-indigo-700"
->
-   📩 Inbox
-</Link>
 
         </div>
 

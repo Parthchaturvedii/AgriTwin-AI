@@ -9,7 +9,6 @@ import {
   PlusCircle,
   Store,
   MessageCircle,
-  Inbox,
   ShoppingBag,
 } from "lucide-react";
 
@@ -28,7 +27,6 @@ import PricePrediction from "../components/PricePrediction";
 import Chatbot from "../components/dashboard/Chatbot";
 
 function Dashboard() {
-
   const navigate = useNavigate();
 
   const [dashboard, setDashboard] = useState({});
@@ -49,7 +47,6 @@ function Dashboard() {
   }, [sidebarOpen]);
 
   useEffect(() => {
-
     const token = localStorage.getItem("token");
 
     if (!token) {
@@ -58,21 +55,19 @@ function Dashboard() {
     }
 
     const loadDashboard = async () => {
-
       try {
-
         const { data } = await api.get("/dashboard");
 
         if (data.success) {
           setDashboard(data);
         }
-
       } catch (err) {
-
         console.log(err);
 
         if (err.response?.status === 401) {
-          localStorage.clear();
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+
           navigate("/login");
           return;
         }
@@ -81,35 +76,38 @@ function Dashboard() {
           err.response?.data?.message ||
             "Unable to load dashboard."
         );
-
       } finally {
-
         setLoading(false);
-
       }
-
     };
 
     loadDashboard();
-
   }, [navigate]);
+
+  /* =====================================================
+     LOADING
+  ===================================================== */
 
   if (loading) {
     return (
-      <div className="flex h-screen justify-center items-center bg-slate-100">
-        <h1 className="text-3xl font-bold animate-pulse text-green-600">
-          Loading Farmer Dashboard...
-        </h1>
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <div className="bg-white rounded-2xl shadow-lg px-10 py-8">
+          <h2 className="text-2xl font-bold text-green-600">
+            🌱 Loading Farmer Dashboard...
+          </h2>
+        </div>
       </div>
     );
   }
 
+  /* =====================================================
+     ERROR
+  ===================================================== */
+
   if (error) {
     return (
-      <div className="flex h-screen justify-center items-center bg-slate-100">
-
-        <div className="bg-white rounded-3xl shadow-xl p-8">
-
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
+        <div className="bg-white rounded-3xl shadow-xl p-8 max-w-xl w-full">
           <h2 className="text-3xl font-bold text-red-600">
             Dashboard Error
           </h2>
@@ -118,52 +116,65 @@ function Dashboard() {
             {error}
           </p>
 
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl"
+          >
+            Try Again
+          </button>
         </div>
-
       </div>
     );
   }
 
   return (
-
     <div className="min-h-screen bg-slate-100">
+
+      {/* =====================================================
+          SIDEBAR
+      ===================================================== */}
 
       <Sidebar
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
       />
 
+      {/* =====================================================
+          MAIN
+      ===================================================== */}
+
       <main
         className={`transition-all duration-300 ${
           sidebarOpen ? "ml-72" : "ml-0"
         }`}
       >
-
         <div className="p-8">
+
+          {/* =====================================================
+              NAVBAR
+          ===================================================== */}
 
           <Navbar />
 
-          {/* Header */}
+          {/* =====================================================
+              HEADER
+          ===================================================== */}
 
           <div className="mt-6 flex justify-between items-center flex-wrap gap-5">
 
             <div>
-
               <h1 className="text-4xl font-bold">
-
                 Farmer Dashboard
-
               </h1>
 
               <p className="text-gray-500 mt-2">
-
                 Smart AI Powered Farm Management
-
               </p>
-
             </div>
 
             <div className="flex gap-4 flex-wrap">
+
+              {/* CREATE LISTING */}
 
               <Link
                 to="/create-listing"
@@ -173,6 +184,8 @@ function Dashboard() {
                 Create Listing
               </Link>
 
+              {/* MARKETPLACE */}
+
               <Link
                 to="/marketplace"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition"
@@ -180,6 +193,8 @@ function Dashboard() {
                 <Store size={20} />
                 Marketplace
               </Link>
+
+              {/* BUYER OFFERS */}
 
               <Link
                 to="/farmer-offers"
@@ -189,27 +204,30 @@ function Dashboard() {
                 Buyer Offers
               </Link>
 
+              {/* SINGLE INBOX BUTTON */}
+
               <Link
-                to="/chat"
+                to="/inbox"
                 className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition"
               >
-                <Inbox size={20} />
+                <MessageCircle size={20} />
                 Inbox
               </Link>
 
             </div>
-
           </div>
 
-          {/* AI Decision */}
+          {/* =====================================================
+              AI DECISION
+          ===================================================== */}
 
           <div className="mt-8">
-
             <AIDecisionCard />
-
           </div>
 
-          {/* Overview */}
+          {/* =====================================================
+              OVERVIEW
+          ===================================================== */}
 
           <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6 mt-8">
 
@@ -251,7 +269,9 @@ function Dashboard() {
 
           </div>
 
-                    {/* ================= Recommendation + Weather ================= */}
+          {/* =====================================================
+              RECOMMENDATION + WEATHER
+          ===================================================== */}
 
           <div className="grid xl:grid-cols-2 gap-6 mt-8">
 
@@ -261,23 +281,25 @@ function Dashboard() {
 
           </div>
 
-          {/* ================= Yield Forecast ================= */}
+          {/* =====================================================
+              YIELD FORECAST
+          ===================================================== */}
 
           <div className="mt-8">
-
             <YieldChart />
-
           </div>
 
-          {/* ================= Price Prediction ================= */}
+          {/* =====================================================
+              PRICE PREDICTION
+          ===================================================== */}
 
           <div className="mt-8">
-
             <PricePrediction />
-
           </div>
 
-          {/* ================= Farmer Inbox ================= */}
+          {/* =====================================================
+              FARMER INBOX
+          ===================================================== */}
 
           <div className="bg-white rounded-3xl shadow-lg mt-8 p-8">
 
@@ -286,21 +308,22 @@ function Dashboard() {
               <div>
 
                 <h2 className="text-3xl font-bold">
-
                   Buyer Inbox
-
                 </h2>
 
                 <p className="text-gray-500 mt-2">
-
-                  Negotiate directly with buyers after they submit an offer.
-
+                  Negotiate directly with buyers after
+                  they submit an offer.
                 </p>
 
               </div>
 
+              {/* IMPORTANT:
+                  /inbox instead of /chat
+              */}
+
               <Link
-                to="/chat"
+                to="/inbox"
                 className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition"
               >
                 <MessageCircle size={20} />
@@ -314,16 +337,12 @@ function Dashboard() {
               <div className="rounded-2xl bg-green-50 p-6">
 
                 <h3 className="text-xl font-bold text-green-700">
-
                   Instant Negotiation
-
                 </h3>
 
                 <p className="mt-3 text-gray-600">
-
-                  Chat with buyers in real-time to negotiate price,
-                  quantity and delivery.
-
+                  Chat with buyers in real-time to negotiate
+                  price, quantity and delivery.
                 </p>
 
               </div>
@@ -331,15 +350,12 @@ function Dashboard() {
               <div className="rounded-2xl bg-blue-50 p-6">
 
                 <h3 className="text-xl font-bold text-blue-700">
-
                   Private Conversations
-
                 </h3>
 
                 <p className="mt-3 text-gray-600">
-
-                  Every accepted offer gets its own secure conversation.
-
+                  Every accepted offer gets its own secure
+                  conversation.
                 </p>
 
               </div>
@@ -347,16 +363,12 @@ function Dashboard() {
               <div className="rounded-2xl bg-purple-50 p-6">
 
                 <h3 className="text-xl font-bold text-purple-700">
-
                   Faster Deals
-
                 </h3>
 
                 <p className="mt-3 text-gray-600">
-
-                  Finalize payment, transport and crop pickup without
-                  leaving AgriTwin AI.
-
+                  Finalize payment, transport and crop pickup
+                  without leaving AgriTwin AI.
                 </p>
 
               </div>
@@ -365,7 +377,9 @@ function Dashboard() {
 
           </div>
 
-          {/* ================= Buyer Offers ================= */}
+          {/* =====================================================
+              BUYER OFFERS
+          ===================================================== */}
 
           <div className="bg-white rounded-3xl shadow-lg mt-8 p-8">
 
@@ -374,15 +388,11 @@ function Dashboard() {
               <div>
 
                 <h2 className="text-3xl font-bold">
-
                   Recent Buyer Offers
-
                 </h2>
 
                 <p className="text-gray-500 mt-2">
-
                   Quickly review incoming offers.
-
                 </p>
 
               </div>
@@ -405,39 +415,27 @@ function Dashboard() {
                   <tr className="border-b">
 
                     <th className="text-left py-4">
-
                       Buyer
-
                     </th>
 
                     <th className="text-left">
-
                       Crop
-
                     </th>
 
                     <th className="text-left">
-
                       Offered Price
-
                     </th>
 
                     <th className="text-left">
-
                       Quantity
-
                     </th>
 
                     <th className="text-left">
-
                       Status
-
                     </th>
 
                     <th className="text-left">
-
                       Action
-
                     </th>
 
                   </tr>
@@ -454,78 +452,86 @@ function Dashboard() {
                         colSpan="6"
                         className="py-12 text-center text-gray-500"
                       >
-
                         No buyer offers available.
-
                       </td>
 
                     </tr>
 
                   ) : (
 
-                    dashboard.offers.slice(0, 5).map((offer) => (
+                    dashboard.offers
+                      .slice(0, 5)
+                      .map((offer) => (
 
-                      <tr
-                        key={offer._id}
-                        className="border-b hover:bg-slate-50"
-                      >
+                        <tr
+                          key={offer._id}
+                          className="border-b hover:bg-slate-50"
+                        >
 
-                        <td className="py-5">
+                          <td className="py-5">
+                            {offer.buyer?.fullName || "Unknown Buyer"}
+                          </td>
 
-                          {offer.buyer?.fullName}
+                          <td>
+                            {offer.listing?.cropName || "Unknown Crop"}
+                          </td>
 
-                        </td>
+                          <td className="font-semibold text-green-700">
+                            ₹{offer.offeredPrice}
+                          </td>
 
-                        <td>
+                          <td>
+                            {offer.quantity}
+                          </td>
 
-                          {offer.listing?.cropName}
+                          <td>
 
-                        </td>
+                            <span
+                              className={`px-4 py-2 rounded-full text-white text-sm ${
+                                offer.status === "Accepted"
+                                  ? "bg-green-600"
+                                  : offer.status === "Rejected"
+                                  ? "bg-red-600"
+                                  : "bg-yellow-500"
+                              }`}
+                            >
+                              {offer.status}
+                            </span>
 
-                        <td className="font-semibold text-green-700">
+                          </td>
 
-                          ₹{offer.offeredPrice}
+                          <td>
 
-                        </td>
+                            {offer.chat?._id || offer.chat ? (
 
-                        <td>
+                              <Link
+                                to={`/chat/${
+                                  offer.chat?._id ||
+                                  offer.chat
+                                }`}
+                                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition"
+                              >
+                                <MessageCircle size={16} />
+                                Chat
+                              </Link>
 
-                          {offer.quantity}
+                            ) : (
 
-                        </td>
+                              <Link
+                                to="/inbox"
+                                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition"
+                              >
+                                <MessageCircle size={16} />
+                                Inbox
+                              </Link>
 
-                        <td>
+                            )}
 
-                          <span
-                            className={`px-4 py-2 rounded-full text-white text-sm
-                            ${
-                              offer.status === "Accepted"
-                                ? "bg-green-600"
-                                : offer.status === "Rejected"
-                                ? "bg-red-600"
-                                : "bg-yellow-500"
-                            }`}
-                          >
-                            {offer.status}
-                          </span>
+                          </td>
 
-                        </td>
+                        </tr>
 
-                        <td>
-
-                          <Link
-                            to={`/chat/${offer.chat?._id || offer.chat}`}
-                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition"
-                          >
-                            <MessageCircle size={16} />
-                            Chat
-                          </Link>
-
-                        </td>
-
-                      </tr>
-
-                    ))
+                      ))
 
                   )}
 
@@ -537,43 +543,43 @@ function Dashboard() {
 
           </div>
 
-                   {/* ================= AI Chatbot ================= */}
+          {/* =====================================================
+              AI CHATBOT
+          ===================================================== */}
 
           <div className="mt-8">
-
             <Chatbot />
-
           </div>
 
-          {/* ================= Digital Twin ================= */}
+          {/* =====================================================
+              DIGITAL TWIN
+          ===================================================== */}
 
           <div className="mt-8">
-
             <MiniDigitalTwin />
-
           </div>
 
-          {/* ================= Farm Map ================= */}
+          {/* =====================================================
+              FARM MAP
+          ===================================================== */}
 
           <div className="mt-8">
-
             <FarmMap />
-
           </div>
 
-          {/* ================= Quick Actions ================= */}
+          {/* =====================================================
+              QUICK ACTIONS
+          ===================================================== */}
 
           <div className="mt-10">
 
             <h2 className="text-3xl font-bold mb-6">
-
               Quick Actions
-
             </h2>
 
             <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
 
-              {/* Create Listing */}
+              {/* CREATE LISTING */}
 
               <Link
                 to="/create-listing"
@@ -583,20 +589,17 @@ function Dashboard() {
                 <PlusCircle size={42} />
 
                 <h3 className="text-2xl font-bold mt-5">
-
                   Create Listing
-
                 </h3>
 
                 <p className="mt-3 opacity-90">
-
-                  Sell your crops by creating a new marketplace listing.
-
+                  Sell your crops by creating a new
+                  marketplace listing.
                 </p>
 
               </Link>
 
-              {/* Marketplace */}
+              {/* MARKETPLACE */}
 
               <Link
                 to="/marketplace"
@@ -606,20 +609,17 @@ function Dashboard() {
                 <Store size={42} />
 
                 <h3 className="text-2xl font-bold mt-5">
-
                   Marketplace
-
                 </h3>
 
                 <p className="mt-3 opacity-90">
-
-                  View all active crop listings across the platform.
-
+                  View all active crop listings across
+                  the platform.
                 </p>
 
               </Link>
 
-              {/* Buyer Offers */}
+              {/* BUYER OFFERS */}
 
               <Link
                 to="/farmer-offers"
@@ -629,54 +629,43 @@ function Dashboard() {
                 <ShoppingBag size={42} />
 
                 <h3 className="text-2xl font-bold mt-5">
-
                   Buyer Offers
-
                 </h3>
 
                 <p className="mt-3 opacity-90">
-
-                  Review, accept or reject offers from buyers.
-
+                  Review, accept or reject offers from
+                  buyers.
                 </p>
 
               </Link>
 
-              {/* Inbox */}
+              {/* SINGLE INBOX */}
 
               <Link
-                to="/chat"
+                to="/inbox"
                 className="rounded-3xl bg-purple-600 hover:bg-purple-700 text-white p-8 transition shadow-lg"
               >
 
                 <MessageCircle size={42} />
 
                 <h3 className="text-2xl font-bold mt-5">
-
                   Inbox
-
                 </h3>
 
                 <p className="mt-3 opacity-90">
-
-                  Negotiate prices and finalize deals with buyers.
-
+                  Negotiate prices and finalize deals
+                  with buyers.
                 </p>
 
-              </Link>
-
-              <Link
-                to="/inbox"
-                className="rounded-xl bg-indigo-600 px-6 py-3 text-white font-semibold shadow hover:bg-indigo-700 flex items-center justify-center gap-2"
-              >
-                📩 Inbox
               </Link>
 
             </div>
 
           </div>
 
-          {/* ================= Footer ================= */}
+          {/* =====================================================
+              FOOTER
+          ===================================================== */}
 
           <div className="mt-12 mb-8 rounded-3xl bg-gradient-to-r from-green-600 to-emerald-700 text-white p-10 shadow-xl">
 
@@ -685,17 +674,14 @@ function Dashboard() {
               <div>
 
                 <h2 className="text-3xl font-bold">
-
                   🌱 AgriTwin AI
-
                 </h2>
 
                 <p className="mt-3 text-green-100 max-w-2xl">
-
                   Your complete AI-powered farming companion.
-                  Monitor crops, predict prices, negotiate with buyers,
-                  and maximize profits through intelligent recommendations.
-
+                  Monitor crops, predict prices, negotiate with
+                  buyers, and maximize profits through intelligent
+                  recommendations.
                 </p>
 
               </div>
@@ -703,15 +689,11 @@ function Dashboard() {
               <div className="text-center">
 
                 <div className="text-5xl font-bold">
-
                   24/7
-
                 </div>
 
                 <div className="mt-2 text-green-100">
-
                   AI Assistance Available
-
                 </div>
 
               </div>
@@ -721,13 +703,10 @@ function Dashboard() {
           </div>
 
         </div>
-
       </main>
 
     </div>
-
   );
-
 }
 
 export default Dashboard;

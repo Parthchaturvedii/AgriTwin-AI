@@ -3,21 +3,45 @@ import { useContext } from "react";
 
 import { AuthContext } from "./context/AuthContext";
 
+// ==============================
+// Authentication Pages
+// ==============================
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
+// ==============================
+// Dashboard Pages
+// ==============================
+
 import Dashboard from "./pages/Dashboard";
 import BuyerDashboard from "./pages/BuyerDashboard";
+
+// ==============================
+// Marketplace
+// ==============================
 
 import Marketplace from "./pages/Marketplace";
 import ListingDetails from "./pages/ListingDetails";
 import CreateListing from "./pages/CreateListing";
 
+// ==============================
+// Offers
+// ==============================
+
 import Offers from "./pages/Offers";
 import FarmerOffers from "./pages/FarmerOffers";
 
+// ==============================
+// Chat / Inbox
+// ==============================
+
 import Inbox from "./pages/Inbox";
 import ChatPage from "./pages/ChatPage";
+
+// ==============================
+// Other Pages
+// ==============================
 
 import AIAdvisor from "./pages/AIAdvisor";
 import DigitalTwin from "./pages/DigitalTwin";
@@ -26,27 +50,52 @@ import DiseaseDetection from "./pages/DiseaseDetection";
 import Weather from "./pages/Weather";
 import Settings from "./pages/Settings";
 
+// ==============================
+// Protected Route
+// ==============================
+
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
+
 function App() {
-  const { user, loading } =
-    useContext(AuthContext);
+  const { user, loading } = useContext(AuthContext);
+
+  // =====================================================
+  // WAIT FOR AUTHENTICATION TO LOAD
+  // =====================================================
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-2xl font-bold">
-          🌱 Loading AgriTwin AI...
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <div className="text-center">
+
+          <div className="text-5xl mb-4">
+            🌱
+          </div>
+
+          <h1 className="text-2xl font-bold text-green-700">
+            Loading AgriTwin AI...
+          </h1>
+
+          <p className="mt-2 text-gray-500">
+            Please wait...
+          </p>
+
         </div>
       </div>
     );
   }
+
+  // =====================================================
+  // HOME ROUTE
+  // =====================================================
 
   const homeRoute = user
     ? user.role === "buyer"
       ? "/buyer-dashboard"
       : "/dashboard"
     : "/login";
+
 
   return (
     <Routes>
@@ -65,8 +114,9 @@ function App() {
         }
       />
 
+
       {/* =================================================
-          AUTH
+          AUTHENTICATION
       ================================================= */}
 
       <Route
@@ -97,8 +147,9 @@ function App() {
         }
       />
 
+
       {/* =================================================
-          DASHBOARDS
+          FARMER DASHBOARD
       ================================================= */}
 
       <Route
@@ -110,6 +161,11 @@ function App() {
         }
       />
 
+
+      {/* =================================================
+          BUYER DASHBOARD
+      ================================================= */}
+
       <Route
         path="/buyer-dashboard"
         element={
@@ -118,6 +174,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
 
       {/* =================================================
           MARKETPLACE
@@ -150,9 +207,12 @@ function App() {
         }
       />
 
+
       {/* =================================================
           OFFERS
       ================================================= */}
+
+      {/* Buyer Offers */}
 
       <Route
         path="/offers"
@@ -163,6 +223,8 @@ function App() {
         }
       />
 
+      {/* Farmer Offers */}
+
       <Route
         path="/farmer-offers"
         element={
@@ -172,8 +234,9 @@ function App() {
         }
       />
 
+
       {/* =================================================
-          CHAT
+          ONE CENTRAL INBOX
       ================================================= */}
 
       <Route
@@ -185,6 +248,40 @@ function App() {
         }
       />
 
+
+      {/* =================================================
+          BACKWARD COMPATIBILITY
+          
+          If any old button still uses:
+          
+          /chat
+          
+          send the user to the same Inbox.
+
+          This means we don't need a separate Chat menu.
+      ================================================= */}
+
+      <Route
+        path="/chat"
+        element={
+          <Navigate
+            to="/inbox"
+            replace
+          />
+        }
+      />
+
+
+      {/* =================================================
+          SPECIFIC CHAT / NEGOTIATION
+          
+          Example:
+          
+          /chat/65abc123...
+          
+          opens one specific conversation.
+      ================================================= */}
+
       <Route
         path="/chat/:chatId"
         element={
@@ -193,6 +290,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
 
       {/* =================================================
           FARM MANAGEMENT
@@ -207,6 +305,7 @@ function App() {
         }
       />
 
+
       {/* =================================================
           AI ADVISOR
       ================================================= */}
@@ -219,6 +318,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
 
       {/* =================================================
           DIGITAL TWIN
@@ -233,8 +333,9 @@ function App() {
         }
       />
 
+
       {/* =================================================
-          DISEASE
+          DISEASE DETECTION
       ================================================= */}
 
       <Route
@@ -245,6 +346,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
 
       {/* =================================================
           WEATHER
@@ -259,6 +361,7 @@ function App() {
         }
       />
 
+
       {/* =================================================
           SETTINGS
       ================================================= */}
@@ -271,6 +374,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
 
       {/* =================================================
           404

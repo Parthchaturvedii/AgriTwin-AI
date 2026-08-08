@@ -15,23 +15,42 @@ import {
 function Sidebar({ sidebarOpen, setSidebarOpen }) {
   const location = useLocation();
 
-  // ==========================================
-  // Get currently logged-in user
-  // ==========================================
+  /*
+  =====================================================
+  GET CURRENT USER
+  =====================================================
+  */
 
   let currentUser = null;
 
   try {
-    const storedUser = localStorage.getItem("user");
+    const storedUser =
+      localStorage.getItem("user");
 
     if (storedUser) {
       currentUser = JSON.parse(storedUser);
     }
   } catch (error) {
-    console.error("Unable to read user:", error);
+    console.error(
+      "Unable to read user:",
+      error
+    );
   }
 
-  const userName = currentUser?.fullName || "User";
+  const userName =
+    currentUser?.fullName || "User";
+
+  /*
+  =====================================================
+  SIDEBAR MENU
+  =====================================================
+
+  IMPORTANT:
+  Inbox / Negotiation is intentionally NOT added here.
+
+  The navbar chat icon is now the single entry point
+  for all conversations.
+  */
 
   const menuItems = [
     {
@@ -39,31 +58,37 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
       path: "/dashboard",
       icon: <LayoutDashboard size={20} />,
     },
+
     {
       name: "Farms",
       path: "/farms",
       icon: <Sprout size={20} />,
     },
+
     {
       name: "Digital Twin",
       path: "/digital-twin",
       icon: <Map size={20} />,
     },
+
     {
       name: "AI Advisor",
       path: "/ai",
       icon: <Bot size={20} />,
     },
+
     {
       name: "Weather",
       path: "/weather",
       icon: <CloudSun size={20} />,
     },
+
     {
       name: "Disease Detection",
       path: "/disease",
       icon: <Leaf size={20} />,
     },
+
     {
       name: "Settings",
       path: "/settings",
@@ -71,31 +96,53 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
     },
   ];
 
+  /*
+  =====================================================
+  DASHBOARD CLICK
+  =====================================================
+
+  If already on dashboard, clicking Dashboard toggles
+  the sidebar instead of unnecessarily navigating.
+  */
+
   const handleDashboardClick = (e) => {
     if (location.pathname === "/dashboard") {
       e.preventDefault();
-      setSidebarOpen((prev) => !prev);
+
+      setSidebarOpen(
+        (previous) => !previous
+      );
     }
   };
 
+  /*
+  =====================================================
+  UI
+  =====================================================
+  */
+
   return (
     <>
-      {/* ==========================================
-          Open Sidebar Button
-      ========================================== */}
+      {/* =================================================
+          OPEN SIDEBAR BUTTON
+      ================================================= */}
 
       {!sidebarOpen && (
         <button
-          onClick={() => setSidebarOpen(true)}
+          type="button"
+          onClick={() =>
+            setSidebarOpen(true)
+          }
+          aria-label="Open sidebar"
           className="fixed left-4 top-5 z-[60] rounded-xl bg-green-600 p-3 text-white shadow-xl transition hover:bg-green-700"
         >
           <ChevronRight size={22} />
         </button>
       )}
 
-      {/* ==========================================
-          Sidebar
-      ========================================== */}
+      {/* =================================================
+          SIDEBAR
+      ================================================= */}
 
       <aside
         className={`fixed left-0 top-0 z-50 h-screen w-72 border-r border-gray-200 bg-white shadow-xl transition-transform duration-300 dark:border-slate-700 dark:bg-slate-900 ${
@@ -104,9 +151,9 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
             : "-translate-x-full"
         }`}
       >
-        {/* ==========================================
-            Header
-        ========================================== */}
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
         <div className="flex items-center justify-between border-b border-gray-200 p-6 dark:border-slate-700">
           <div>
@@ -120,16 +167,20 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
           </div>
 
           <button
-            onClick={() => setSidebarOpen(false)}
+            type="button"
+            onClick={() =>
+              setSidebarOpen(false)
+            }
+            aria-label="Close sidebar"
             className="rounded-lg p-2 transition hover:bg-gray-100 dark:hover:bg-slate-700"
           >
             <ChevronLeft size={20} />
           </button>
         </div>
 
-        {/* ==========================================
-            Navigation
-        ========================================== */}
+        {/* =================================================
+            NAVIGATION
+        ================================================= */}
 
         <nav className="flex-1 space-y-2 p-4">
           {menuItems.map((item) => (
@@ -150,14 +201,17 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               }
             >
               {item.icon}
-              <span>{item.name}</span>
+
+              <span>
+                {item.name}
+              </span>
             </NavLink>
           ))}
         </nav>
 
-        {/* ==========================================
-            User Footer
-        ========================================== */}
+        {/* =================================================
+            USER FOOTER
+        ================================================= */}
 
         <div className="border-t border-gray-200 p-5 dark:border-slate-700">
           <div className="rounded-xl bg-green-50 p-4 dark:bg-slate-800">
