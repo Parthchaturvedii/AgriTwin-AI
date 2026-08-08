@@ -10,16 +10,18 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { SidebarProvider } from "./context/SidebarContext";
 import AuthProvider from "./context/AuthContext";
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(
+  document.getElementById("root")
+).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <AuthProvider>
-        <SidebarProvider>
-          <BrowserRouter>
+    <BrowserRouter>
+      <ThemeProvider>
+        <AuthProvider>
+          <SidebarProvider>
             <App />
-          </BrowserRouter>
-        </SidebarProvider>
-      </AuthProvider>
-    </ThemeProvider>
+          </SidebarProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );

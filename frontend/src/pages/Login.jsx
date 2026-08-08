@@ -37,60 +37,49 @@ function Login() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    try {
-      setLoading(true);
-      setMessage("");
+  try {
+    setLoading(true);
+    setMessage("");
 
-      const { data } = await api.post(
-        "/auth/login",
-        {
-          email: formData.email,
-          password: formData.password,
-        }
-      );
+    const { data } = await api.post("/auth/login", {
+      email: formData.email,
+      password: formData.password,
+    });
 
-      if (!data.success) {
-        throw new Error("Login Failed");
-      }
-
-      localStorage.setItem(
-        "token",
-        data.token
-      );
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(data.user)
-      );
-
-      setMessage("✅ Login Successful");
-
-      // Redirect according to role
-
-      if (data.user.role === "buyer") {
-        navigate("/buyer-dashboard", {
-          replace: true,
-        });
-      } else {
-        navigate("/dashboard", {
-          replace: true,
-        });
-      }
-
-    } catch (error) {
-      console.error(error);
-
-      setMessage(
-        error.response?.data?.message ||
-          error.message ||
-          "Login Failed"
-      );
-    } finally {
-      setLoading(false);
+    if (!data.success || !data.token || !data.user) {
+      throw new Error("Invalid login response.");
     }
-  };
+
+    // IMPORTANT:
+    // Update AuthContext immediately
+    login(data.user, data.token);
+
+    setMessage("✅ Login Successful");
+
+    // Redirect according to role
+    if (data.user.role === "buyer") {
+      navigate("/buyer-dashboard", {
+        replace: true,
+      });
+    } else {
+      navigate("/dashboard", {
+        replace: true,
+      });
+    }
+  } catch (error) {
+    console.error("LOGIN ERROR:", error);
+
+    setMessage(
+      error.response?.data?.message ||
+        error.message ||
+        "Login Failed"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-100 via-white to-green-50 px-4">
